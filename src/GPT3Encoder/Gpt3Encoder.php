@@ -6,7 +6,7 @@ class Gpt3Encoder
 {
 
     private readonly bool $mbStringLoaded;
-    private int $memoryLimit;
+    private readonly int $memoryLimit;
     private readonly CacheInterface $cache;
     private readonly int $memoryLimitThreshold;
 
