@@ -22,6 +22,10 @@
     {
       "name": "CodeRevolution",
       "homepage": "https://coderevolution.ro/"
+    },
+    {
+      "name": "Anton Kuznetsov",
+      "homepage": "https://github.com/AntonyBenjiro"
     }
   ],
   "autoload": {
@@ -32,10 +36,5 @@
   "require": {
     "php": ">=8.2",
     "ext-json": "*"
-  },
-  "support": {
-    "issues": "https://github.com/CodeRevolutionPlugins/GPT-3-Encoder-PHP/issues",
-    "wiki": "https://github.com/CodeRevolutionPlugins/GPT-3-Encoder-PHP/wiki",
-    "source": "https://github.com/CodeRevolutionPlugins/GPT-3-Encoder-PHP"
   }
 }
