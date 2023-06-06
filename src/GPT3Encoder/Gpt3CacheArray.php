@@ -9,7 +9,7 @@ class Gpt3CacheArray implements CacheInterface
 
     public function get(string $key): mixed
     {
-        if (isset($this->ttls[$key]) && time() <= $this->ttls[$key]) {
+        if (isset($this->ttls[$key]) && time() >= $this->ttls[$key]) {
             unset($this->storage[$key], $this->ttls[$key]);
         }
         return $this->storage[$key] ?? null;
