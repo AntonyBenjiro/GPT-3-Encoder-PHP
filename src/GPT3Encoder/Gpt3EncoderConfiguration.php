@@ -9,7 +9,6 @@ class Gpt3EncoderConfiguration
     private string $encoderLibPath = __DIR__ . '/encoder.json';
     private string $vocabularyPath = __DIR__ . '/vocab.bpe';
     private string $cache = Gpt3CacheArray::class;
-    private int $memoryLimitThreshold = 10000000;
 
     public function setCharacters(string $path): static
     {
@@ -68,24 +67,6 @@ class Gpt3EncoderConfiguration
     public function setCacheClass(string $cache): static
     {
         $this->cache = $cache;
-        return $this;
-    }
-
-    /**
-     * @return int
-     */
-    public function getMemoryLimitThreshold(): int
-    {
-        return $this->memoryLimitThreshold;
-    }
-
-    /**
-     * @param int $memoryLimitThreshold
-     * @return Gpt3EncoderConfiguration
-     */
-    public function setMemoryLimitThreshold(int $memoryLimitThreshold): static
-    {
-        $this->memoryLimitThreshold = $memoryLimitThreshold;
         return $this;
     }
 }

@@ -6,27 +6,15 @@ class Gpt3Encoder
 {
 
     private readonly bool $mbStringLoaded;
-    private readonly int $memoryLimit;
     private readonly CacheInterface $cache;
-    private readonly int $memoryLimitThreshold;
 
     public function __construct(
         private readonly Gpt3EncoderConfiguration $configuration = new Gpt3EncoderConfiguration
     )
     {
         $cacheClass = $this->configuration->getCacheClass();
-        $this->memoryLimitThreshold = $this->configuration->getMemoryLimitThreshold();
         $this->cache = new $cacheClass;
         $this->mbStringLoaded = function_exists('mb_strlen');
-        $memory_limit = ini_get('memory_limit');
-        if (preg_match('/^(\d+)(.)$/', $memory_limit, $matches)) {
-            if ($matches[2] === 'M') {
-                $memory_limit = $matches[1] * 1024 * 1024; // nnnM -> nnn MB
-            } else if ($matches[2] === 'K') {
-                $memory_limit = $matches[1] * 1024; // nnnK -> nnn KB
-            }
-        }
-        $this->memoryLimit = $memory_limit;
     }
 
 
@@ -41,13 +29,9 @@ class Gpt3Encoder
         if (empty($text)) {
             return $bpe_tokens;
         }
-        $this->memcheck();
         $byte_encoder = $this->byteEncoder();
-        $this->memcheck();
         $encoder = $this->encoder();
-        $this->memcheck();
         $bpe_file = $this->vocabulary();
-        $this->memcheck();
 
         preg_match_all("#'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+#u", $text, $matches);
         if (!isset($matches[0]) || count($matches[0]) === 0) {
@@ -59,7 +43,6 @@ class Gpt3Encoder
         foreach ($bpe_merges_temp as $bmt) {
             $split_bmt = preg_split('#(\s+)#', $bmt);
             $split_bmt = array_filter($split_bmt, fn($item) => $this->myFilter($item));
-            $this->memcheck();
             if (count($split_bmt) > 0) {
                 $bpe_merges[] = $split_bmt;
             }
@@ -70,12 +53,10 @@ class Gpt3Encoder
         foreach ($matches[0] as $token) {
             $new_tokens = [];
             $chars = [];
-            $this->memcheck();
             $token = $this->utf8Encode($token);
             if ($this->mbStringLoaded) {
                 $len = mb_strlen($token, 'UTF-8');
                 for ($i = 0; $i < $len; $i++) {
-                    $this->memcheck();
                     $chars[] = mb_substr($token, $i, 1, 'UTF-8');
                 }
             } else {
@@ -83,17 +64,13 @@ class Gpt3Encoder
             }
             $result_word = '';
             foreach ($chars as $char) {
-                $this->memcheck();
                 if (isset($byte_encoder[$this->unichr($char)])) {
                     $result_word .= $byte_encoder[$this->unichr($char)];
                 }
             }
-            $this->memcheck();
             $new_tokens_bpe = $this->bpe($result_word, $bpe_ranks, $cache);
-            $this->memcheck();
             $new_tokens_bpe = explode(' ', $new_tokens_bpe);
             foreach ($new_tokens_bpe as $x) {
-                $this->memcheck();
                 if (isset($encoder[$x])) {
                     if (isset($new_tokens[$x])) {
                         $new_tokens[rand() . '---' . $x] = $encoder[$x];
@@ -108,7 +85,6 @@ class Gpt3Encoder
                     }
             }
             foreach ($new_tokens as $index => $val) {
-                $this->memcheck();
                 if (isset($bpe_tokens[$index])) {
                     $bpe_tokens[rand() . '---' . $index] = $val;
                 } else {
@@ -117,15 +93,6 @@ class Gpt3Encoder
             }
         }
         return $bpe_tokens;
-    }
-
-    private function memcheck(): void
-    {
-        if (memory_get_usage(true) > $this->memoryLimit - $this->memoryLimitThreshold) {
-            throw new \RuntimeException(
-                'Memory limit exhausted. Consider increase memory_limit for script to run'
-            );
-        }
     }
 
     /**
@@ -180,7 +147,6 @@ class Gpt3Encoder
         $result = [];
         $cnt = 0;
         foreach ($x as $i) {
-            $this->memcheck();
             if (isset($i[1], $i[0])) {
                 $result[$i[0] . ',' . $i[1]] = $cnt;
                 $cnt++;
@@ -195,7 +161,6 @@ class Gpt3Encoder
         $str .= $str;
         $len = strlen($str);
         for ($i = $len >> 1, $j = 0; $i < $len; ++$i, ++$j) {
-            $this->memcheck();
             switch (true) {
                 case $str[$i] < "\x80":
                     $str[$j] = $str[$i];
@@ -249,9 +214,7 @@ class Gpt3Encoder
         }
         while (true) {
             $minPairs = [];
-            $this->memcheck();
             foreach ($pairs as $pair) {
-                $this->memcheck();
                 if (array_key_exists($pair[0] . ',' . $pair[1], $bpe_ranks)) {
                     $rank = $bpe_ranks[$pair[0] . ',' . $pair[1]];
                     $minPairs[$rank] = $pair;
@@ -262,7 +225,6 @@ class Gpt3Encoder
             ksort($minPairs);
             $min_key = array_key_first($minPairs);
             foreach ($minPairs as $mpi => $mp) {
-                $this->memcheck();
                 if ($mpi < $min_key) {
                     $min_key = $mpi;
                 }
@@ -276,7 +238,6 @@ class Gpt3Encoder
             $new_word = [];
             $i = 0;
             while ($i < count($word)) {
-                $this->memcheck();
                 $j = $this->indexOf($word, $first, $i);
                 if ($j === -1) {
                     $new_word = array_merge($new_word, array_slice($word, $i, null, true));
@@ -366,7 +327,6 @@ class Gpt3Encoder
      */
     public function decode(array $tokens, bool $throwOnUndefinedChar = false): string
     {
-        $this->memcheck();
         $decoder = array_flip($this->encoder());
         $byte_decoder = array_flip($this->byteEncoder());
         $text = '';
@@ -379,7 +339,6 @@ class Gpt3Encoder
         $text_arr = preg_split('//u', $text, -1, PREG_SPLIT_NO_EMPTY);
         $final_arr = [];
         foreach ($text_arr as $txa) {
-            $this->memcheck();
             if (!isset($byte_decoder[$txa]) && $throwOnUndefinedChar) {
                 throw new \RuntimeException('Character not found in byte_decoder: ' . $txa);
             }
