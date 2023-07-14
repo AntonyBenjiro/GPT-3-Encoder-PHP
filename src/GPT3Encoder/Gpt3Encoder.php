@@ -29,24 +29,14 @@ class Gpt3Encoder
         if (empty($text)) {
             return $bpe_tokens;
         }
-        $byte_encoder = $this->byteEncoder();
-        $encoder = $this->encoder();
-        $bpe_file = $this->vocabulary();
-
         preg_match_all("#'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+#u", $text, $matches);
         if (!isset($matches[0]) || count($matches[0]) === 0) {
             throw new \RuntimeException('Failed to match string');
         }
-        $lines = preg_split('/\r\n|\r|\n/', $bpe_file);
-        $bpe_merges = [];
-        $bpe_merges_temp = array_slice($lines, 1, count($lines), true);
-        foreach ($bpe_merges_temp as $bmt) {
-            $split_bmt = preg_split('#(\s+)#', $bmt);
-            $split_bmt = array_filter($split_bmt, fn($item) => $this->myFilter($item));
-            if (count($split_bmt) > 0) {
-                $bpe_merges[] = $split_bmt;
-            }
-        }
+        $byte_encoder = $this->byteEncoder();
+        $encoder = $this->encoder();
+        $bpe_file = $this->vocabulary();
+        $bpe_merges = $this->merges($bpe_file);
         $bpe_ranks = $this->dictZip($bpe_merges);
 
         $cache = [];
@@ -349,5 +339,23 @@ class Gpt3Encoder
             $output .= chr($iValue);
         }
         return $output;
+    }
+
+    private function merges(string $bpe_file): array
+    {
+        if (!$bpe_merges = $this->cache->get('bpe_merges')) {
+            $lines = preg_split('/\r\n|\r|\n/', $bpe_file);
+            $bpe_merges = [];
+            $bpe_merges_temp = array_slice($lines, 1, count($lines), true);
+            foreach ($bpe_merges_temp as $bmt) {
+                $split_bmt = preg_split('#(\s+)#', $bmt);
+                $split_bmt = array_filter($split_bmt, fn($item) => $this->myFilter($item));
+                if (count($split_bmt) > 0) {
+                    $bpe_merges[] = $split_bmt;
+                }
+            }
+            $this->cache->set('bpe_merges', $bpe_merges);
+        }
+        return $bpe_merges;
     }
 }
