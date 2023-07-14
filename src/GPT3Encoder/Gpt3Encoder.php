@@ -134,13 +134,16 @@ class Gpt3Encoder
 
     private function dictZip(array $x): array
     {
-        $result = [];
-        $cnt = 0;
-        foreach ($x as $i) {
-            if (isset($i[1], $i[0])) {
-                $result[$i[0] . ',' . $i[1]] = $cnt;
-                $cnt++;
+        if (!$result = $this->cache->get('dictZip')) {
+            $result = [];
+            $cnt = 0;
+            foreach ($x as $i) {
+                if (isset($i[1], $i[0])) {
+                    $result[$i[0] . ',' . $i[1]] = $cnt;
+                    $cnt++;
+                }
             }
+            $this->cache->set('dictZip', $result);
         }
         return $result;
 
